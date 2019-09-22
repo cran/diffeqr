@@ -6,7 +6,7 @@
 \usage{
 sde.solve(f, g, u0, tspan, p = NULL, alg = "nothing",
   noise.dims = NULL, maxiters = 1e+06, reltol = 0.01,
-  abstol = 0.01, saveat = NULL)
+  abstol = 0.01, saveat = NULL, seed = 0)
 }
 \arguments{
 \item{f}{the drift function.}
@@ -32,7 +32,10 @@ Defualt value is 1000000.}
 \item{abstol}{the absolute tolerance of the ODE solver. Defaults to 1e-6.}
 
 \item{saveat}{the time points to save values at. Should be an array of times. Defaults to automatic.}
+
+\item{seed}{the seed for the random numbers. Defaults to zero for a random seed.}
 }
+
 \value{
 sol. Has the sol$t for the time points and sol$u for the values.
 }
