@@ -2,7 +2,10 @@
 #'
 #' This function initializes Julia and the DifferentialEquations.jl package.
 #' The first time will be long since it includes precompilation.
+#' Additionally, this will install Julia and the required packages
+#' if they are missing.
 #'
+#' @param pkg_check logical, check for DifferentialEquations.jl package and install if necessary
 #' @param ... Parameters are passed down to JuliaCall::julia_setup
 #'
 #' @examples
@@ -14,9 +17,9 @@
 #' }
 #'
 #' @export
-diffeq_setup <- function (...){
-  julia <- JuliaCall::julia_setup(...)
-  JuliaCall::julia_install_package_if_needed("DifferentialEquations")
+diffeq_setup <- function (pkg_check=TRUE,...){
+  julia <- JuliaCall::julia_setup(installJulia=TRUE,...)
+  if(pkg_check) JuliaCall::julia_install_package_if_needed("DifferentialEquations")
   JuliaCall::julia_library("DifferentialEquations")
 
   JuliaCall::julia_install_package_if_needed("ModelingToolkit")
@@ -31,6 +34,8 @@ diffeq_setup <- function (...){
   JuliaCall::autowrap("DiffEqBase.EnsembleSolution", fields = c("t","u"))
   de
 }
+
+julia_locate <- do.call(":::", list("JuliaCall", quote(julia_locate)))
 
 #' Jit Optimize an ODEProblem
 #'

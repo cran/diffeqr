@@ -1,7 +1,8 @@
 # diffeqr
 
 [![Join the chat at https://gitter.im/JuliaDiffEq/Lobby](https://badges.gitter.im/JuliaDiffEq/Lobby.svg)](https://gitter.im/JuliaDiffEq/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](https://travis-ci.com/SciML/diffeqr.svg?branch=master)](https://travis-ci.com/SciML/diffeqr)
+[![R build
+status](https://github.com/SciML/diffeqr/workflows/R-CMD-check/badge.svg)](https://github.com/SciML/diffeqr/actions)
 
 diffeqr is a package for solving differential equations in R. It utilizes
 [DifferentialEquations.jl](https://diffeq.sciml.ai/dev/) for its core routines
@@ -26,9 +27,13 @@ To install the master branch of the package (for developers), use:
 devtools::install_github('SciML/diffeqr', build_vignettes=T)
 ```
 
-You will need a working installation of Julia in your path. To install Julia, download a generic binary
-from [the JuliaLang site](https://julialang.org/downloads/) and add it to your path. The download and
-installation of DifferentialEquations.jl will happen on the first invocation of `diffeqr::diffeq_setup()`.
+Note that the first invocation of
+`diffeqr::diffeq_setup()` will install both Julia
+and the required packages if they are missing.
+If you wish to have it use an existing Julia binary,
+make sure that `julia` is found in the path. For more
+information see the `julia_setup()` function from
+[JuliaCall](https://github.com/Non-Contradiction/JuliaCall).
 
 ## Usage
 
@@ -237,6 +242,16 @@ To demonstrate the performance advantage, let's time them all:
 ```
 
 This is about a 50x improvement!
+
+#### Limitations of the JIT Compilation
+
+Using Julia's [ModelingToolkit](https://github.com/SciML/ModelingToolkit.jl)
+for tracing to JIT compile via Julia has a few known limitations:
+
+- It requires that all of the function calls are tracable. Scalar functions
+  like `cos` and `sin` all fall into this category. Notably, matrix multiplication
+  is not supported.
+- It will have a compilation lag on the first call.
 
 ## Stochastic Differential Equation (SDE) Examples
 
