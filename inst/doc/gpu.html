@@ -1,360 +1,279 @@
 <!DOCTYPE html>
+
 <html>
+
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
-<title>GPU-Accelerated ODE Solving of Ensembles</title>
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
-<script type="text/javascript">
-window.onload = function() {
-  var imgs = document.getElementsByTagName('img'), i, img;
-  for (i = 0; i < imgs.length; i++) {
-    img = imgs[i];
-    // center an image if it is the only element of its parent
-    if (img.parentElement.childElementCount === 1)
-      img.parentElement.style.textAlign = 'center';
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Chris Rackauckas" />
+
+<meta name="date" content="2021-08-04" />
+
+<title>GPU-Accelerated Ordinary Differential Equations (ODE) in R with diffeqr</title>
+
+<script src="data:application/javascript;base64,Ly8gUGFuZG9jIDIuOSBhZGRzIGF0dHJpYnV0ZXMgb24gYm90aCBoZWFkZXIgYW5kIGRpdi4gV2UgcmVtb3ZlIHRoZSBmb3JtZXIgKHRvCi8vIGJlIGNvbXBhdGlibGUgd2l0aCB0aGUgYmVoYXZpb3Igb2YgUGFuZG9jIDwgMi44KS4KZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignRE9NQ29udGVudExvYWRlZCcsIGZ1bmN0aW9uKGUpIHsKICB2YXIgaHMgPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCJkaXYuc2VjdGlvbltjbGFzcyo9J2xldmVsJ10gPiA6Zmlyc3QtY2hpbGQiKTsKICB2YXIgaSwgaCwgYTsKICBmb3IgKGkgPSAwOyBpIDwgaHMubGVuZ3RoOyBpKyspIHsKICAgIGggPSBoc1tpXTsKICAgIGlmICghL15oWzEtNl0kL2kudGVzdChoLnRhZ05hbWUpKSBjb250aW51ZTsgIC8vIGl0IHNob3VsZCBiZSBhIGhlYWRlciBoMS1oNgogICAgYSA9IGguYXR0cmlidXRlczsKICAgIHdoaWxlIChhLmxlbmd0aCA+IDApIGgucmVtb3ZlQXR0cmlidXRlKGFbMF0ubmFtZSk7CiAgfQp9KTsK"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
   }
-};
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
 </script>
 
 
 
 
+<link rel="stylesheet" href="data:text/css,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" type="text/css" />
 
-<style type="text/css">
-body, td {
-   font-family: sans-serif;
-   background-color: white;
-   font-size: 13px;
-}
-
-body {
-  max-width: 800px;
-  margin: auto;
-  padding: 1em;
-  line-height: 20px;
-}
-
-tt, code, pre {
-   font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
-}
-
-h1 {
-   font-size:2.2em;
-}
-
-h2 {
-   font-size:1.8em;
-}
-
-h3 {
-   font-size:1.4em;
-}
-
-h4 {
-   font-size:1.0em;
-}
-
-h5 {
-   font-size:0.9em;
-}
-
-h6 {
-   font-size:0.8em;
-}
-
-a:visited {
-   color: rgb(50%, 0%, 50%);
-}
-
-pre, img {
-  max-width: 100%;
-}
-pre {
-  overflow-x: auto;
-}
-pre code {
-   display: block; padding: 0.5em;
-}
-
-code {
-  font-size: 92%;
-  border: 1px solid #ccc;
-}
-
-code[class] {
-  background-color: #F8F8F8;
-}
-
-table, td, th {
-  border: none;
-}
-
-blockquote {
-   color:#666666;
-   margin:0;
-   padding-left: 1em;
-   border-left: 0.5em #EEE solid;
-}
-
-hr {
-   height: 0px;
-   border-bottom: none;
-   border-top-width: thin;
-   border-top-style: dotted;
-   border-top-color: #999999;
-}
-
-@media print {
-   * {
-      background: transparent !important;
-      color: black !important;
-      filter:none !important;
-      -ms-filter: none !important;
-   }
-
-   body {
-      font-size:12pt;
-      max-width:100%;
-   }
-
-   a, a:visited {
-      text-decoration: underline;
-   }
-
-   hr {
-      visibility: hidden;
-      page-break-before: always;
-   }
-
-   pre, blockquote {
-      padding-right: 1em;
-      page-break-inside: avoid;
-   }
-
-   tr, img {
-      page-break-inside: avoid;
-   }
-
-   img {
-      max-width: 100% !important;
-   }
-
-   @page :left {
-      margin: 15mm 20mm 15mm 10mm;
-   }
-
-   @page :right {
-      margin: 15mm 10mm 15mm 20mm;
-   }
-
-   p, h2, h3 {
-      orphans: 3; widows: 3;
-   }
-
-   h2, h3 {
-      page-break-after: avoid;
-   }
-}
-</style>
 
 
 
 </head>
 
 <body>
+
+
+
+
+<h1 class="title toc-ignore">GPU-Accelerated Ordinary Differential Equations (ODE) in R with diffeqr</h1>
+<h4 class="author">Chris Rackauckas</h4>
+<h4 class="date">2021-08-04</h4>
+
+
+
+<div id="gpu-accelerated-ode-solving-of-ensembles" class="section level2">
 <h2>GPU-Accelerated ODE Solving of Ensembles</h2>
-
-<p>In many cases one is interested in solving the same ODE many times over many
-different initial conditions and parameters. In diffeqr parlance this is called
-an ensemble solve. diffeqr inherits the parallelism tools of the 
-<a href="https://sciml.ai/">SciML ecosystem</a> that are used for things like
-<a href="https://arxiv.org/abs/2001.04385">automated equation discovery and acceleration</a>.
-Here we will demonstrate using these parallel tools to accelerate the solving
-of an ensemble.</p>
-
-<p>First, let&#39;s define the JIT-accelerated Lorenz equation like before:</p>
-
-<pre><code class="R">de &lt;- diffeqr::diffeq_setup()
-lorenz &lt;- function (u,p,t){
-  du1 = p[1]*(u[2]-u[1])
-  du2 = u[1]*(p[2]-u[3]) - u[2]
-  du3 = u[1]*u[2] - p[3]*u[3]
-  c(du1,du2,du3)
-}
-u0 &lt;- c(1.0,1.0,1.0)
-tspan &lt;- c(0.0,100.0)
-p &lt;- c(10.0,28.0,8/3)
-prob &lt;- de$ODEProblem(lorenz,u0,tspan,p)
-fastprob &lt;- diffeqr::jitoptimize_ode(de,prob)
-</code></pre>
-
-<p>Now we use the <code>EnsembleProblem</code> as defined on the 
-<a href="https://diffeq.sciml.ai/stable/features/ensemble/">ensemble parallelism page of the documentation</a>:
-Let&#39;s build an ensemble by utilizing uniform random numbers to randomize the
-initial conditions and parameters:</p>
-
-<pre><code class="R">prob_func &lt;- function (prob,i,rep){
-  de$remake(prob,u0=runif(3)*u0,p=runif(3)*p)
-}
-ensembleprob = de$EnsembleProblem(fastprob, prob_func = prob_func, safetycopy=FALSE)
-</code></pre>
-
+<p>In many cases one is interested in solving the same ODE many times over many different initial conditions and parameters. In diffeqr parlance this is called an ensemble solve. diffeqr inherits the parallelism tools of the <a href="https://sciml.ai/">SciML ecosystem</a> that are used for things like <a href="https://arxiv.org/abs/2001.04385">automated equation discovery and acceleration</a>. Here we will demonstrate using these parallel tools to accelerate the solving of an ensemble.</p>
+<p>First, let’s define the JIT-accelerated Lorenz equation like before:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>de <span class="ot">&lt;-</span> diffeqr<span class="sc">::</span><span class="fu">diffeq_setup</span>()</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>lorenz <span class="ot">&lt;-</span> <span class="cf">function</span> (u,p,t){</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  du1 <span class="ot">=</span> p[<span class="dv">1</span>]<span class="sc">*</span>(u[<span class="dv">2</span>]<span class="sc">-</span>u[<span class="dv">1</span>])</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  du2 <span class="ot">=</span> u[<span class="dv">1</span>]<span class="sc">*</span>(p[<span class="dv">2</span>]<span class="sc">-</span>u[<span class="dv">3</span>]) <span class="sc">-</span> u[<span class="dv">2</span>]</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  du3 <span class="ot">=</span> u[<span class="dv">1</span>]<span class="sc">*</span>u[<span class="dv">2</span>] <span class="sc">-</span> p[<span class="dv">3</span>]<span class="sc">*</span>u[<span class="dv">3</span>]</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(du1,du2,du3)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>u0 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">1.0</span>,<span class="fl">1.0</span>,<span class="fl">1.0</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>tspan <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.0</span>,<span class="fl">100.0</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">10.0</span>,<span class="fl">28.0</span>,<span class="dv">8</span><span class="sc">/</span><span class="dv">3</span>)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>prob <span class="ot">&lt;-</span> de<span class="sc">$</span><span class="fu">ODEProblem</span>(lorenz,u0,tspan,p)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>fastprob <span class="ot">&lt;-</span> diffeqr<span class="sc">::</span><span class="fu">jitoptimize_ode</span>(de,prob)</span></code></pre></div>
+<p>Now we use the <code>EnsembleProblem</code> as defined on the <a href="https://diffeq.sciml.ai/stable/features/ensemble/">ensemble parallelism page of the documentation</a>: Let’s build an ensemble by utilizing uniform random numbers to randomize the initial conditions and parameters:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>prob_func <span class="ot">&lt;-</span> <span class="cf">function</span> (prob,i,rep){</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  de<span class="sc">$</span><span class="fu">remake</span>(prob,<span class="at">u0=</span><span class="fu">runif</span>(<span class="dv">3</span>)<span class="sc">*</span>u0,<span class="at">p=</span><span class="fu">runif</span>(<span class="dv">3</span>)<span class="sc">*</span>p)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>ensembleprob <span class="ot">=</span> de<span class="sc">$</span><span class="fu">EnsembleProblem</span>(fastprob, <span class="at">prob_func =</span> prob_func, <span class="at">safetycopy=</span><span class="cn">FALSE</span>)</span></code></pre></div>
 <p>Now we solve the ensemble in serial:</p>
-
-<pre><code class="R">sol = de$solve(ensembleprob,de$Tsit5(),de$EnsembleSerial(),trajectories=10000,saveat=0.01)
-</code></pre>
-
-<p>To add GPUs to the mix, we need to bring in <a href="https://github.com/SciML/DiffEqGPU.jl">DiffEqGPU</a>.
-The <code>diffeqr::diffeqgpu_setup()</code> helper function will install CUDA for you and
-bring all of the bindings into the returned object:</p>
-
-<pre><code class="R">degpu &lt;- diffeqr::diffeqgpu_setup()
-</code></pre>
-
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sol <span class="ot">=</span> de<span class="sc">$</span><span class="fu">solve</span>(ensembleprob,de<span class="sc">$</span><span class="fu">Tsit5</span>(),de<span class="sc">$</span><span class="fu">EnsembleSerial</span>(),<span class="at">trajectories=</span><span class="dv">10000</span>,<span class="at">saveat=</span><span class="fl">0.01</span>)</span></code></pre></div>
+<p>To add GPUs to the mix, we need to bring in <a href="https://github.com/SciML/DiffEqGPU.jl">DiffEqGPU</a>. The <code>diffeqr::diffeqgpu_setup()</code> helper function will install CUDA for you and bring all of the bindings into the returned object:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>degpu <span class="ot">&lt;-</span> diffeqr<span class="sc">::</span><span class="fu">diffeqgpu_setup</span>()</span></code></pre></div>
 <p>Now we simply use <code>EnsembleGPUArray()</code> to solve 10,000 ODEs on the GPU in parallel:</p>
-
-<pre><code class="R">sol &lt;- de$solve(ensembleprob,de$Tsit5(),degpu$EnsembleGPUArray(),trajectories=10000,saveat=0.01)
-</code></pre>
-
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>sol <span class="ot">&lt;-</span> de<span class="sc">$</span><span class="fu">solve</span>(ensembleprob,de<span class="sc">$</span><span class="fu">Tsit5</span>(),degpu<span class="sc">$</span><span class="fu">EnsembleGPUArray</span>(),<span class="at">trajectories=</span><span class="dv">10000</span>,<span class="at">saveat=</span><span class="fl">0.01</span>)</span></code></pre></div>
+<div id="benchmark" class="section level3">
 <h3>Benchmark</h3>
-
-<p>To see how much of an effect the parallelism has, let&#39;s test this against R&#39;s
-deSolve package. This is exactly the same problem as the documentation example
-for deSolve, so let&#39;s copy that verbatim and then add a function to do the
-ensemble generation:</p>
-
-<pre><code class="R">library(deSolve)
-Lorenz &lt;- function(t, state, parameters) {
-  with(as.list(c(state, parameters)), {
-    dX &lt;-  a * X + Y * Z
-    dY &lt;-  b * (Y - Z)
-    dZ &lt;- -X * Y + c * Y - Z
-    list(c(dX, dY, dZ))
-  })
-}
-
-parameters &lt;- c(a = -8/3, b = -10, c = 28)
-state      &lt;- c(X = 1, Y = 1, Z = 1)
-times      &lt;- seq(0, 100, by = 0.01)
-out &lt;- ode(y = state, times = times, func = Lorenz, parms = parameters)
-
-lorenz_solve &lt;- function (i){
-  state      &lt;- c(X = runif(1), Y = runif(1), Z = runif(1))
-  parameters &lt;- c(a = -8/3 * runif(1), b = -10 * runif(1), c = 28 * runif(1))
-  out &lt;- ode(y = state, times = times, func = Lorenz, parms = parameters)
-}
-</code></pre>
-
+<p>To see how much of an effect the parallelism has, let’s test this against R’s deSolve package. This is exactly the same problem as the documentation example for deSolve, so let’s copy that verbatim and then add a function to do the ensemble generation:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(deSolve)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>Lorenz <span class="ot">&lt;-</span> <span class="cf">function</span>(t, state, parameters) {</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">with</span>(<span class="fu">as.list</span>(<span class="fu">c</span>(state, parameters)), {</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    dX <span class="ot">&lt;-</span>  a <span class="sc">*</span> X <span class="sc">+</span> Y <span class="sc">*</span> Z</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    dY <span class="ot">&lt;-</span>  b <span class="sc">*</span> (Y <span class="sc">-</span> Z)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    dZ <span class="ot">&lt;-</span> <span class="sc">-</span>X <span class="sc">*</span> Y <span class="sc">+</span> c <span class="sc">*</span> Y <span class="sc">-</span> Z</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(<span class="fu">c</span>(dX, dY, dZ))</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>parameters <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">a =</span> <span class="sc">-</span><span class="dv">8</span><span class="sc">/</span><span class="dv">3</span>, <span class="at">b =</span> <span class="sc">-</span><span class="dv">10</span>, <span class="at">c =</span> <span class="dv">28</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>state      <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">X =</span> <span class="dv">1</span>, <span class="at">Y =</span> <span class="dv">1</span>, <span class="at">Z =</span> <span class="dv">1</span>)</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>times      <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">100</span>, <span class="at">by =</span> <span class="fl">0.01</span>)</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">ode</span>(<span class="at">y =</span> state, <span class="at">times =</span> times, <span class="at">func =</span> Lorenz, <span class="at">parms =</span> parameters)</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>lorenz_solve <span class="ot">&lt;-</span> <span class="cf">function</span> (i){</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  state      <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">X =</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">Y =</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">Z =</span> <span class="fu">runif</span>(<span class="dv">1</span>))</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>  parameters <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">a =</span> <span class="sc">-</span><span class="dv">8</span><span class="sc">/</span><span class="dv">3</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">b =</span> <span class="sc">-</span><span class="dv">10</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">c =</span> <span class="dv">28</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>))</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">ode</span>(<span class="at">y =</span> state, <span class="at">times =</span> times, <span class="at">func =</span> Lorenz, <span class="at">parms =</span> parameters)</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>Using <code>lapply</code> to generate the ensemble we get:</p>
-
 <pre><code>&gt; system.time({ lapply(1:1000,lorenz_solve) })
    user  system elapsed 
- 225.81    0.46  226.63
-</code></pre>
-
-<p>Now let&#39;s see how the JIT-accelerated serial Julia version stacks up against that:</p>
-
+ 225.81    0.46  226.63</code></pre>
+<p>Now let’s see how the JIT-accelerated serial Julia version stacks up against that:</p>
 <pre><code>&gt; system.time({ de$solve(ensembleprob,de$Tsit5(),de$EnsembleSerial(),trajectories=1000,saveat=0.01) })
    user  system elapsed 
-   2.75    0.30    3.08 
-</code></pre>
-
-<p>Julia is already about 73x faster than the pure R solvers here! Now let&#39;s add
-GPU-acceleration to the mix:</p>
-
+   2.75    0.30    3.08 </code></pre>
+<p>Julia is already about 73x faster than the pure R solvers here! Now let’s add GPU-acceleration to the mix:</p>
 <pre><code>&gt; system.time({ de$solve(ensembleprob,de$Tsit5(),degpu$EnsembleGPUArray(),trajectories=1000,saveat=0.01) })
    user  system elapsed 
-   1.33    1.57    2.93 
-</code></pre>
-
-<p>That&#39;s only around 2x faster. But the GPU acceleartion is made for massively
-parallel problems, so let&#39;s up the trajectories a bit. We will not use more
-trajectories from R because that would take too much computing power, so let&#39;s
-see what happens to the Julia serial and GPU at 10,000 trajectories:</p>
-
+   1.33    1.57    2.93 </code></pre>
+<p>That’s only around 2x faster. But the GPU acceleartion is made for massively parallel problems, so let’s up the trajectories a bit. We will not use more trajectories from R because that would take too much computing power, so let’s see what happens to the Julia serial and GPU at 10,000 trajectories:</p>
 <pre><code>&gt; system.time({ de$solve(ensembleprob,de$Tsit5(),de$EnsembleSerial(),trajectories=10000,saveat=0.01) })
    user  system elapsed 
-  35.02    4.19   39.25 
-</code></pre>
-
+  35.02    4.19   39.25 </code></pre>
 <pre><code>&gt; system.time({ de$solve(ensembleprob,de$Tsit5(),degpu$EnsembleGPUArray(),trajectories=10000,saveat=0.01) })
    user  system elapsed 
-  12.03    3.57   15.60
-</code></pre>
-
+  12.03    3.57   15.60</code></pre>
 <p>To compare this to the pure Julia code:</p>
-
-<pre><code class="julia">using OrdinaryDiffEq, DiffEqGPU
-function lorenz(du,u,p,t)
- @inbounds begin
-     du[1] = p[1]*(u[2]-u[1])
-     du[2] = u[1]*(p[2]-u[3]) - u[2]
-     du[3] = u[1]*u[2] - p[3]*u[3]
- end
- nothing
-end
-
-u0 = Float32[1.0;1.0;1.0]
-tspan = (0.0f0,100.0f0)
-p = [10.0f0,28.0f0,8/3f0]
-prob = ODEProblem(lorenz,u0,tspan,p)
-prob_func = (prob,i,repeat) -&gt; remake(prob,u0=rand(Float32,3).*u0,p=rand(Float32,3).*p)
-monteprob = EnsembleProblem(prob, prob_func = prob_func, safetycopy=false)
-@time sol = solve(monteprob,Tsit5(),EnsembleGPUArray(),trajectories=10_000,saveat=0.01f0)
-
-# 9.444439 seconds (22.96 M allocations: 6.464 GiB, 44.53% gc time)
-</code></pre>
-
-<p>which is more than an order of magnitude faster for computing 10,000 trajectories,
-note that the major factors are that we cannot define 32-bit floating point values
-from R and the <code>prob_func</code> for generating the initial conditions and parameters
-is a major bottleneck since this function is written in R.</p>
-
-<p>To see how this scales in Julia, let&#39;s take it to insane heights. First, let&#39;s
-reduce the amount we&#39;re saving:</p>
-
-<pre><code class="julia">@time sol = solve(monteprob,Tsit5(),EnsembleGPUArray(),trajectories=10_000,saveat=1.0f0)
-# 0.801215 seconds (1.66 M allocations: 133.846 MiB)
-</code></pre>
-
-<p>This highlights that controlling memory pressure is key with GPU usage: you will
-get much better performance when requiring less saved points on the GPU.</p>
-
-<pre><code class="julia">@time sol = solve(monteprob,Tsit5(),EnsembleGPUArray(),trajectories=100_000,saveat=1.0f0)
-# 1.871536 seconds (6.66 M allocations: 919.521 MiB, 2.48% gc time)
-</code></pre>
-
+<div class="sourceCode" id="cb12"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> OrdinaryDiffEq<span class="op">,</span> DiffEqGPU</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> lorenz(du<span class="op">,</span>u<span class="op">,</span>p<span class="op">,</span>t)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a> <span class="pp">@inbounds</span> <span class="kw">begin</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>     du[<span class="fl">1</span>] <span class="op">=</span> p[<span class="fl">1</span>]<span class="op">*</span>(u[<span class="fl">2</span>]<span class="op">-</span>u[<span class="fl">1</span>])</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>     du[<span class="fl">2</span>] <span class="op">=</span> u[<span class="fl">1</span>]<span class="op">*</span>(p[<span class="fl">2</span>]<span class="op">-</span>u[<span class="fl">3</span>]) <span class="op">-</span> u[<span class="fl">2</span>]</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>     du[<span class="fl">3</span>] <span class="op">=</span> u[<span class="fl">1</span>]<span class="op">*</span>u[<span class="fl">2</span>] <span class="op">-</span> p[<span class="fl">3</span>]<span class="op">*</span>u[<span class="fl">3</span>]</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a> <span class="kw">end</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a> <span class="cn">nothing</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>u0 <span class="op">=</span> <span class="dt">Float32</span>[<span class="fl">1.0</span><span class="op">;</span><span class="fl">1.0</span><span class="op">;</span><span class="fl">1.0</span>]</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>tspan <span class="op">=</span> (<span class="fl">0.0f0</span><span class="op">,</span><span class="fl">100.0f0</span>)</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> [<span class="fl">10.0f0</span><span class="op">,</span><span class="fl">28.0f0</span><span class="op">,</span><span class="fl">8</span><span class="op">/</span><span class="fl">3f0</span>]</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>prob <span class="op">=</span> ODEProblem(lorenz<span class="op">,</span>u0<span class="op">,</span>tspan<span class="op">,</span>p)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>prob_func <span class="op">=</span> (prob<span class="op">,</span>i<span class="op">,</span>repeat) <span class="op">-&gt;</span> remake(prob<span class="op">,</span>u0<span class="op">=</span>rand(<span class="dt">Float32</span><span class="op">,</span><span class="fl">3</span>)<span class="op">.*</span>u0<span class="op">,</span>p<span class="op">=</span>rand(<span class="dt">Float32</span><span class="op">,</span><span class="fl">3</span>)<span class="op">.*</span>p)</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>monteprob <span class="op">=</span> EnsembleProblem(prob<span class="op">,</span> prob_func <span class="op">=</span> prob_func<span class="op">,</span> safetycopy<span class="op">=</span><span class="ex">false</span>)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> solve(monteprob<span class="op">,</span>Tsit5()<span class="op">,</span>EnsembleGPUArray()<span class="op">,</span>trajectories<span class="op">=</span><span class="fl">10_000</span><span class="op">,</span>saveat<span class="op">=</span><span class="fl">0.01f0</span>)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="co"># 9.444439 seconds (22.96 M allocations: 6.464 GiB, 44.53% gc time)</span></span></code></pre></div>
+<p>which is more than an order of magnitude faster for computing 10,000 trajectories, note that the major factors are that we cannot define 32-bit floating point values from R and the <code>prob_func</code> for generating the initial conditions and parameters is a major bottleneck since this function is written in R.</p>
+<p>To see how this scales in Julia, let’s take it to insane heights. First, let’s reduce the amount we’re saving:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> solve(monteprob<span class="op">,</span>Tsit5()<span class="op">,</span>EnsembleGPUArray()<span class="op">,</span>trajectories<span class="op">=</span><span class="fl">10_000</span><span class="op">,</span>saveat<span class="op">=</span><span class="fl">1.0f0</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 0.801215 seconds (1.66 M allocations: 133.846 MiB)</span></span></code></pre></div>
+<p>This highlights that controlling memory pressure is key with GPU usage: you will get much better performance when requiring less saved points on the GPU.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> solve(monteprob<span class="op">,</span>Tsit5()<span class="op">,</span>EnsembleGPUArray()<span class="op">,</span>trajectories<span class="op">=</span><span class="fl">100_000</span><span class="op">,</span>saveat<span class="op">=</span><span class="fl">1.0f0</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 1.871536 seconds (6.66 M allocations: 919.521 MiB, 2.48% gc time)</span></span></code></pre></div>
 <p>compared to serial:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> solve(monteprob<span class="op">,</span>Tsit5()<span class="op">,</span>EnsembleSerial()<span class="op">,</span>trajectories<span class="op">=</span><span class="fl">100_000</span><span class="op">,</span>saveat<span class="op">=</span><span class="fl">1.0f0</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 22.136743 seconds (16.40 M allocations: 1.628 GiB, 42.98% gc time)</span></span></code></pre></div>
+<p>And now we start to see that scaling power! Let’s solve 1 million trajectories:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> solve(monteprob<span class="op">,</span>Tsit5()<span class="op">,</span>EnsembleGPUArray()<span class="op">,</span>trajectories<span class="op">=</span><span class="fl">1_000_000</span><span class="op">,</span>saveat<span class="op">=</span><span class="fl">1.0f0</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 25.234710 seconds (56.53 M allocations: 8.579 GiB, 51.61% gc time)</span></span></code></pre></div>
+<p>For reference, let’s look at deSolve with the change to only save that much:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>times      <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">100</span>, <span class="at">by =</span> <span class="fl">1.0</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>lorenz_solve <span class="ot">&lt;-</span> <span class="cf">function</span> (i){</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  state      <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">X =</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">Y =</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">Z =</span> <span class="fu">runif</span>(<span class="dv">1</span>))</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  parameters <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">a =</span> <span class="sc">-</span><span class="dv">8</span><span class="sc">/</span><span class="dv">3</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">b =</span> <span class="sc">-</span><span class="dv">10</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">c =</span> <span class="dv">28</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>))</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">ode</span>(<span class="at">y =</span> state, <span class="at">times =</span> times, <span class="at">func =</span> Lorenz, <span class="at">parms =</span> parameters)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>({ <span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">1000</span>,lorenz_solve) })</span></code></pre></div>
+<p>The GPU version is solving 1000x as many trajectories, 2x as fast! So conclusion, if you need the most speed, you may want to move to the Julia version to get the most out of your GPU due to Float32’s, and when using GPUs make sure it’s a problem with a relatively average or low memory pressure, and these methods will give orders of magnitude acceleration compared to what you might be used to.</p>
+</div>
+</div>
 
-<pre><code class="julia">@time sol = solve(monteprob,Tsit5(),EnsembleSerial(),trajectories=100_000,saveat=1.0f0)
-# 22.136743 seconds (16.40 M allocations: 1.628 GiB, 42.98% gc time)
-</code></pre>
 
-<p>And now we start to see that scaling power! Let&#39;s solve 1 million trajectories:</p>
 
-<pre><code class="julia">@time sol = solve(monteprob,Tsit5(),EnsembleGPUArray(),trajectories=1_000_000,saveat=1.0f0)
-# 25.234710 seconds (56.53 M allocations: 8.579 GiB, 51.61% gc time)
-</code></pre>
+<!-- code folding -->
 
-<p>For reference, let&#39;s look at deSolve with the change to only save that much:</p>
 
-<pre><code class="R">times      &lt;- seq(0, 100, by = 1.0)
-lorenz_solve &lt;- function (i){
-  state      &lt;- c(X = runif(1), Y = runif(1), Z = runif(1))
-  parameters &lt;- c(a = -8/3 * runif(1), b = -10 * runif(1), c = 28 * runif(1))
-  out &lt;- ode(y = state, times = times, func = Lorenz, parms = parameters)
-}
-
-system.time({ lapply(1:1000,lorenz_solve) })
-</code></pre>
-
-<p>The GPU version is solving 1000x as many trajectories, 2x as fast! So conclusion,
-if you need the most speed, you may want to move to the Julia version to get the
-most out of your GPU due to Float32&#39;s, and when using GPUs make sure it&#39;s a problem
-with a relatively average or low memory pressure, and these methods will give
-orders of magnitude acceleration compared to what you might be used to.</p>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
 
 </body>
-
 </html>

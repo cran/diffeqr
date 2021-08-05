@@ -17,9 +17,12 @@ The first time will be long since it includes precompilation.
 Additionally, this will install Julia and the required packages
 if they are missing.
 }
+\value{Returns the de object which gives R-side calls to DifferentialEquations.jl's
+functions. For example, de$solve calls the DifferentialEquations.solve function,
+and de$ODEProblem calls the DifferentialEquations.}
 \examples{
 
-\donttest{ ## diffeq_setup() is time-consuming and requires Julia+DifferentialEquations.jl
+\dontrun{ ## diffeq_setup() is time-consuming and requires Julia+DifferentialEquations.jl
 
 diffeqr::diffeq_setup()
 

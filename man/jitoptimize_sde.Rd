@@ -15,9 +15,12 @@ jitoptimize_sde(de, prob)
 This function JIT Optimizes and SDEProblem utilizing the Julia ModelingToolkit
 and JIT compiler.
 }
+\value{
+Returns an SDEProblem which has been JIT-optimized by Julia.
+}
 \examples{
 
-\donttest{ ## diffeq_setup() is time-consuming and requires Julia+DifferentialEquations.jl
+\dontrun{ ## diffeq_setup() is time-consuming and requires Julia+DifferentialEquations.jl
 
 diffeqr::diffeq_setup()
 

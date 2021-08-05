@@ -15,9 +15,12 @@ jitoptimize_ode(de, prob)
 This function JIT Optimizes and ODEProblem utilizing the Julia ModelingToolkit
 and JIT compiler.
 }
+\value{
+Returns an ODEProblem which has been JIT-optimized by Julia.
+}
 \examples{
 
-\donttest{ ## diffeq_setup() is time-consuming and requires Julia+DifferentialEquations.jl
+\dontrun{ ## diffeq_setup() is time-consuming and requires Julia+DifferentialEquations.jl
 de <- diffeqr::diffeq_setup()
 f <- function(u,p,t) {
   du1 = p[1]*(u[2]-u[1])
