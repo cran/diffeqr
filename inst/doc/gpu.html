@@ -12,7 +12,7 @@
 
 <meta name="author" content="Chris Rackauckas" />
 
-<meta name="date" content="2022-12-24" />
+<meta name="date" content="2023-10-20" />
 
 <title>GPU-Accelerated Ordinary Differential Equations (ODE) in R with diffeqr</title>
 
@@ -341,12 +341,10 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h1 class="title toc-ignore">GPU-Accelerated Ordinary Differential
 Equations (ODE) in R with diffeqr</h1>
 <h4 class="author">Chris Rackauckas</h4>
-<h4 class="date">2022-12-24</h4>
+<h4 class="date">2023-10-20</h4>
 
 
 
-<div id="gpu-accelerated-ode-solving-of-ensembles" class="section level2">
-<h2>GPU-Accelerated ODE Solving of Ensembles</h2>
 <p>In many cases one is interested in solving the same ODE many times
 over many different initial conditions and parameters. In diffeqr
 parlance this is called an ensemble solve. diffeqr inherits the
@@ -356,144 +354,163 @@ acceleration</a>. Here we will demonstrate using these parallel tools to
 accelerate the solving of an ensemble.</p>
 <p>First, let’s define the JIT-accelerated Lorenz equation like
 before:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>de <span class="ot">&lt;-</span> diffeqr<span class="sc">::</span><span class="fu">diffeq_setup</span>()</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>lorenz <span class="ot">&lt;-</span> <span class="cf">function</span> (u,p,t){</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  du1 <span class="ot">=</span> p[<span class="dv">1</span>]<span class="sc">*</span>(u[<span class="dv">2</span>]<span class="sc">-</span>u[<span class="dv">1</span>])</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  du2 <span class="ot">=</span> u[<span class="dv">1</span>]<span class="sc">*</span>(p[<span class="dv">2</span>]<span class="sc">-</span>u[<span class="dv">3</span>]) <span class="sc">-</span> u[<span class="dv">2</span>]</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  du3 <span class="ot">=</span> u[<span class="dv">1</span>]<span class="sc">*</span>u[<span class="dv">2</span>] <span class="sc">-</span> p[<span class="dv">3</span>]<span class="sc">*</span>u[<span class="dv">3</span>]</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(du1,du2,du3)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>u0 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">1.0</span>,<span class="fl">1.0</span>,<span class="fl">1.0</span>)</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>tspan <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.0</span>,<span class="fl">100.0</span>)</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">10.0</span>,<span class="fl">28.0</span>,<span class="dv">8</span><span class="sc">/</span><span class="dv">3</span>)</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>prob <span class="ot">&lt;-</span> de<span class="sc">$</span><span class="fu">ODEProblem</span>(lorenz,u0,tspan,p)</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>fastprob <span class="ot">&lt;-</span> diffeqr<span class="sc">::</span><span class="fu">jitoptimize_ode</span>(de,prob)</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>de <span class="ot">&lt;-</span> diffeqr<span class="sc">::</span><span class="fu">diffeq_setup</span>()</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>lorenz <span class="ot">&lt;-</span> <span class="cf">function</span> (u,p,t){</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>  du1 <span class="ot">=</span> p[<span class="dv">1</span>]<span class="sc">*</span>(u[<span class="dv">2</span>]<span class="sc">-</span>u[<span class="dv">1</span>])</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  du2 <span class="ot">=</span> u[<span class="dv">1</span>]<span class="sc">*</span>(p[<span class="dv">2</span>]<span class="sc">-</span>u[<span class="dv">3</span>]) <span class="sc">-</span> u[<span class="dv">2</span>]</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>  du3 <span class="ot">=</span> u[<span class="dv">1</span>]<span class="sc">*</span>u[<span class="dv">2</span>] <span class="sc">-</span> p[<span class="dv">3</span>]<span class="sc">*</span>u[<span class="dv">3</span>]</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>  <span class="fu">c</span>(du1,du2,du3)</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>}</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>u0 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">1.0</span>,<span class="fl">1.0</span>,<span class="fl">1.0</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>tspan <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.0</span>,<span class="fl">100.0</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">10.0</span>,<span class="fl">28.0</span>,<span class="dv">8</span><span class="sc">/</span><span class="dv">3</span>)</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>prob <span class="ot">&lt;-</span> de<span class="sc">$</span><span class="fu">ODEProblem</span>(lorenz,u0,tspan,p)</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>fastprob <span class="ot">&lt;-</span> diffeqr<span class="sc">::</span><span class="fu">jitoptimize_ode</span>(de,prob)</span></code></pre></div>
 <p>Now we use the <code>EnsembleProblem</code> as defined on the <a href="https://diffeq.sciml.ai/stable/features/ensemble/">ensemble
 parallelism page of the documentation</a>: Let’s build an ensemble by
 utilizing uniform random numbers to randomize the initial conditions and
 parameters:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>prob_func <span class="ot">&lt;-</span> <span class="cf">function</span> (prob,i,rep){</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  de<span class="sc">$</span><span class="fu">remake</span>(prob,<span class="at">u0=</span><span class="fu">runif</span>(<span class="dv">3</span>)<span class="sc">*</span>u0,<span class="at">p=</span><span class="fu">runif</span>(<span class="dv">3</span>)<span class="sc">*</span>p)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>ensembleprob <span class="ot">=</span> de<span class="sc">$</span><span class="fu">EnsembleProblem</span>(fastprob, <span class="at">prob_func =</span> prob_func, <span class="at">safetycopy=</span><span class="cn">FALSE</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>prob_func <span class="ot">&lt;-</span> <span class="cf">function</span> (prob,i,rep){</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  de<span class="sc">$</span><span class="fu">remake</span>(prob,<span class="at">u0=</span><span class="fu">runif</span>(<span class="dv">3</span>)<span class="sc">*</span>u0,<span class="at">p=</span><span class="fu">runif</span>(<span class="dv">3</span>)<span class="sc">*</span>p)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>}</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>ensembleprob <span class="ot">=</span> de<span class="sc">$</span><span class="fu">EnsembleProblem</span>(fastprob, <span class="at">prob_func =</span> prob_func, <span class="at">safetycopy=</span><span class="cn">FALSE</span>)</span></code></pre></div>
 <p>Now we solve the ensemble in serial:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sol <span class="ot">=</span> de<span class="sc">$</span><span class="fu">solve</span>(ensembleprob,de<span class="sc">$</span><span class="fu">Tsit5</span>(),de<span class="sc">$</span><span class="fu">EnsembleSerial</span>(),<span class="at">trajectories=</span><span class="dv">10000</span>,<span class="at">saveat=</span><span class="fl">0.01</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>sol <span class="ot">=</span> de<span class="sc">$</span><span class="fu">solve</span>(ensembleprob,de<span class="sc">$</span><span class="fu">Tsit5</span>(),de<span class="sc">$</span><span class="fu">EnsembleSerial</span>(),<span class="at">trajectories=</span><span class="dv">10000</span>,<span class="at">saveat=</span><span class="fl">0.01</span>)</span></code></pre></div>
 <p>To add GPUs to the mix, we need to bring in <a href="https://github.com/SciML/DiffEqGPU.jl">DiffEqGPU</a>. The
 <code>diffeqr::diffeqgpu_setup()</code> helper function will install
 CUDA for you and bring all of the bindings into the returned object:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>degpu <span class="ot">&lt;-</span> diffeqr<span class="sc">::</span><span class="fu">diffeqgpu_setup</span>()</span></code></pre></div>
-<p>Now we simply use <code>EnsembleGPUArray()</code> to solve 10,000
-ODEs on the GPU in parallel:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>sol <span class="ot">&lt;-</span> de<span class="sc">$</span><span class="fu">solve</span>(ensembleprob,de<span class="sc">$</span><span class="fu">Tsit5</span>(),degpu<span class="sc">$</span><span class="fu">EnsembleGPUArray</span>(),<span class="at">trajectories=</span><span class="dv">10000</span>,<span class="at">saveat=</span><span class="fl">0.01</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>degpu <span class="ot">&lt;-</span> diffeqr<span class="sc">::</span><span class="fu">diffeqgpu_setup</span>(<span class="st">&quot;CUDA&quot;</span>)</span></code></pre></div>
+<div id="note-diffeqrdiffeqgpu_setup-can-take-awhile-to-run-the-first-time-as-it-installs-the-drivers" class="section level4">
+<h4>Note: <code>diffeqr::diffeqgpu_setup</code> can take awhile to run
+the first time as it installs the drivers!</h4>
+<p>Now we simply use <code>EnsembleGPUKernel(degpu$CUDABackend())</code>
+with a GPU-specialized ODE solver <code>GPUTsit5()</code> to solve
+10,000 ODEs on the GPU in parallel:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>sol <span class="ot">&lt;-</span> de<span class="sc">$</span><span class="fu">solve</span>(ensembleprob,degpu<span class="sc">$</span><span class="fu">GPUTsit5</span>(),degpu<span class="sc">$</span><span class="fu">EnsembleGPUKernel</span>(degpu<span class="sc">$</span><span class="fu">CUDABackend</span>()),<span class="at">trajectories=</span><span class="dv">10000</span>,<span class="at">saveat=</span><span class="fl">0.01</span>)</span></code></pre></div>
+<p>For the full list of choices for specialized GPU solvers, see <a href="https://docs.sciml.ai/DiffEqGPU/stable/manual/ensemblegpukernel/">the
+DiffEqGPU.jl documentation</a>.</p>
+<p>Note that <code>EnsembleGPUArray</code> can be used as well,
+like:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>sol <span class="ot">&lt;-</span> de<span class="sc">$</span><span class="fu">solve</span>(ensembleprob,de<span class="sc">$</span><span class="fu">Tsit5</span>(),degpu<span class="sc">$</span><span class="fu">EnsembleGPUArray</span>(degpu<span class="sc">$</span><span class="fu">CUDABackend</span>()),<span class="at">trajectories=</span><span class="dv">10000</span>,<span class="at">saveat=</span><span class="fl">0.01</span>)</span></code></pre></div>
+<p>though we highly recommend the <code>EnsembleGPUKernel</code> methods
+for more speed. Given the way the JIT compilation performed will also
+ensure that the faster kernel generation methods work,
+<code>EnsembleGPUKernel</code> is almost certainly the better choice in
+most applications.</p>
+</div>
 <div id="benchmark" class="section level3">
 <h3>Benchmark</h3>
 <p>To see how much of an effect the parallelism has, let’s test this
 against R’s deSolve package. This is exactly the same problem as the
 documentation example for deSolve, so let’s copy that verbatim and then
 add a function to do the ensemble generation:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(deSolve)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>Lorenz <span class="ot">&lt;-</span> <span class="cf">function</span>(t, state, parameters) {</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">with</span>(<span class="fu">as.list</span>(<span class="fu">c</span>(state, parameters)), {</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    dX <span class="ot">&lt;-</span>  a <span class="sc">*</span> X <span class="sc">+</span> Y <span class="sc">*</span> Z</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    dY <span class="ot">&lt;-</span>  b <span class="sc">*</span> (Y <span class="sc">-</span> Z)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    dZ <span class="ot">&lt;-</span> <span class="sc">-</span>X <span class="sc">*</span> Y <span class="sc">+</span> c <span class="sc">*</span> Y <span class="sc">-</span> Z</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(<span class="fu">c</span>(dX, dY, dZ))</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  })</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>parameters <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">a =</span> <span class="sc">-</span><span class="dv">8</span><span class="sc">/</span><span class="dv">3</span>, <span class="at">b =</span> <span class="sc">-</span><span class="dv">10</span>, <span class="at">c =</span> <span class="dv">28</span>)</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>state      <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">X =</span> <span class="dv">1</span>, <span class="at">Y =</span> <span class="dv">1</span>, <span class="at">Z =</span> <span class="dv">1</span>)</span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>times      <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">100</span>, <span class="at">by =</span> <span class="fl">0.01</span>)</span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">ode</span>(<span class="at">y =</span> state, <span class="at">times =</span> times, <span class="at">func =</span> Lorenz, <span class="at">parms =</span> parameters)</span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>lorenz_solve <span class="ot">&lt;-</span> <span class="cf">function</span> (i){</span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  state      <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">X =</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">Y =</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">Z =</span> <span class="fu">runif</span>(<span class="dv">1</span>))</span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>  parameters <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">a =</span> <span class="sc">-</span><span class="dv">8</span><span class="sc">/</span><span class="dv">3</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">b =</span> <span class="sc">-</span><span class="dv">10</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">c =</span> <span class="dv">28</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>))</span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">ode</span>(<span class="at">y =</span> state, <span class="at">times =</span> times, <span class="at">func =</span> Lorenz, <span class="at">parms =</span> parameters)</span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">library</span>(deSolve)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>Lorenz <span class="ot">&lt;-</span> <span class="cf">function</span>(t, state, parameters) {</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="fu">with</span>(<span class="fu">as.list</span>(<span class="fu">c</span>(state, parameters)), {</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>    dX <span class="ot">&lt;-</span>  a <span class="sc">*</span> X <span class="sc">+</span> Y <span class="sc">*</span> Z</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>    dY <span class="ot">&lt;-</span>  b <span class="sc">*</span> (Y <span class="sc">-</span> Z)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>    dZ <span class="ot">&lt;-</span> <span class="sc">-</span>X <span class="sc">*</span> Y <span class="sc">+</span> c <span class="sc">*</span> Y <span class="sc">-</span> Z</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>    <span class="fu">list</span>(<span class="fu">c</span>(dX, dY, dZ))</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>  })</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>}</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>parameters <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">a =</span> <span class="sc">-</span><span class="dv">8</span><span class="sc">/</span><span class="dv">3</span>, <span class="at">b =</span> <span class="sc">-</span><span class="dv">10</span>, <span class="at">c =</span> <span class="dv">28</span>)</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>state      <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">X =</span> <span class="dv">1</span>, <span class="at">Y =</span> <span class="dv">1</span>, <span class="at">Z =</span> <span class="dv">1</span>)</span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a>times      <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">100</span>, <span class="at">by =</span> <span class="fl">0.01</span>)</span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">ode</span>(<span class="at">y =</span> state, <span class="at">times =</span> times, <span class="at">func =</span> Lorenz, <span class="at">parms =</span> parameters)</span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a>lorenz_solve <span class="ot">&lt;-</span> <span class="cf">function</span> (i){</span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a>  state      <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">X =</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">Y =</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">Z =</span> <span class="fu">runif</span>(<span class="dv">1</span>))</span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a>  parameters <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">a =</span> <span class="sc">-</span><span class="dv">8</span><span class="sc">/</span><span class="dv">3</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">b =</span> <span class="sc">-</span><span class="dv">10</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">c =</span> <span class="dv">28</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>))</span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">ode</span>(<span class="at">y =</span> state, <span class="at">times =</span> times, <span class="at">func =</span> Lorenz, <span class="at">parms =</span> parameters)</span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a>}</span></code></pre></div>
 <p>Using <code>lapply</code> to generate the ensemble we get:</p>
 <pre><code>&gt; system.time({ lapply(1:1000,lorenz_solve) })
-   user  system elapsed 
+   user  system elapsed
  225.81    0.46  226.63</code></pre>
 <p>Now let’s see how the JIT-accelerated serial Julia version stacks up
 against that:</p>
 <pre><code>&gt; system.time({ de$solve(ensembleprob,de$Tsit5(),de$EnsembleSerial(),trajectories=1000,saveat=0.01) })
-   user  system elapsed 
-   2.75    0.30    3.08 </code></pre>
+   user  system elapsed
+   2.75    0.30    3.08</code></pre>
 <p>Julia is already about 73x faster than the pure R solvers here! Now
 let’s add GPU-acceleration to the mix:</p>
-<pre><code>&gt; system.time({ de$solve(ensembleprob,de$Tsit5(),degpu$EnsembleGPUArray(),trajectories=1000,saveat=0.01) })
+<pre><code>&gt; system.time({ de$solve(ensembleprob,degpu$GPUTsit5(),degpu$EnsembleGPUKernel(degpu$CUDABackend()),trajectories=1000,saveat=0.01) })
    user  system elapsed 
-   1.33    1.57    2.93 </code></pre>
-<p>That’s only around 2x faster. But the GPU acceleartion is made for
+   0.11    0.00    0.12</code></pre>
+<p>Already 26x times faster! But the GPU acceleration is made for
 massively parallel problems, so let’s up the trajectories a bit. We will
 not use more trajectories from R because that would take too much
 computing power, so let’s see what happens to the Julia serial and GPU
 at 10,000 trajectories:</p>
 <pre><code>&gt; system.time({ de$solve(ensembleprob,de$Tsit5(),de$EnsembleSerial(),trajectories=10000,saveat=0.01) })
+   user  system elapsed
+  35.02    4.19   39.25</code></pre>
+<pre><code>&gt; system.time({ de$solve(ensembleprob,degpu$GPUTsit5(),degpu$EnsembleGPUKernel(degpu$CUDABackend()),trajectories=10000,saveat=0.01) })
    user  system elapsed 
-  35.02    4.19   39.25 </code></pre>
-<pre><code>&gt; system.time({ de$solve(ensembleprob,de$Tsit5(),degpu$EnsembleGPUArray(),trajectories=10000,saveat=0.01) })
-   user  system elapsed 
-  12.03    3.57   15.60</code></pre>
+   1.22    0.23    1.50 </code></pre>
 <p>To compare this to the pure Julia code:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">OrdinaryDiffEq</span>, <span class="bu">DiffEqGPU</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">lorenz</span>(du,u,p,t)</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a> <span class="pp">@inbounds</span> <span class="cf">begin</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>     du[<span class="fl">1</span>] <span class="op">=</span> p[<span class="fl">1</span>]<span class="fu">*</span>(u[<span class="fl">2</span>]<span class="op">-</span>u[<span class="fl">1</span>])</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>     du[<span class="fl">2</span>] <span class="op">=</span> u[<span class="fl">1</span>]<span class="fu">*</span>(p[<span class="fl">2</span>]<span class="op">-</span>u[<span class="fl">3</span>]) <span class="op">-</span> u[<span class="fl">2</span>]</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>     du[<span class="fl">3</span>] <span class="op">=</span> u[<span class="fl">1</span>]<span class="op">*</span>u[<span class="fl">2</span>] <span class="op">-</span> p[<span class="fl">3</span>]<span class="op">*</span>u[<span class="fl">3</span>]</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a> <span class="cf">end</span></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a> <span class="cn">nothing</span></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>u0 <span class="op">=</span> <span class="dt">Float32</span>[<span class="fl">1.0</span>;<span class="fl">1.0</span>;<span class="fl">1.0</span>]</span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>tspan <span class="op">=</span> (<span class="fl">0.0f0</span>,<span class="fl">100.0f0</span>)</span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> [<span class="fl">10.0f0</span>,<span class="fl">28.0f0</span>,<span class="fl">8</span><span class="op">/</span><span class="fl">3f0</span>]</span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>prob <span class="op">=</span> <span class="fu">ODEProblem</span>(lorenz,u0,tspan,p)</span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>prob_func <span class="op">=</span> (prob,i,repeat) <span class="op">-&gt;</span> <span class="fu">remake</span>(prob,u0<span class="op">=</span><span class="fu">rand</span>(<span class="dt">Float32</span>,<span class="fl">3</span>)<span class="op">.*</span>u0,p<span class="op">=</span><span class="fu">rand</span>(<span class="dt">Float32</span>,<span class="fl">3</span>)<span class="op">.*</span>p)</span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>monteprob <span class="op">=</span> <span class="fu">EnsembleProblem</span>(prob, prob_func <span class="op">=</span> prob_func, safetycopy<span class="op">=</span><span class="cn">false</span>)</span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> <span class="fu">solve</span>(monteprob,<span class="fu">Tsit5</span>(),<span class="fu">EnsembleGPUArray</span>(),trajectories<span class="op">=</span><span class="fl">10_000</span>,saveat<span class="op">=</span><span class="fl">0.01f0</span>)</span>
-<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="co"># 9.444439 seconds (22.96 M allocations: 6.464 GiB, 44.53% gc time)</span></span></code></pre></div>
-<p>which is more than an order of magnitude faster for computing 10,000
+<div class="sourceCode" id="cb13"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="im">using</span> <span class="bu">OrdinaryDiffEq</span>, <span class="bu">DiffEqGPU</span>, <span class="bu">CUDA</span>, <span class="bu">StaticArrays</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="kw">function</span> <span class="fu">lorenz</span>(u, p, t)</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>    σ <span class="op">=</span> p[<span class="fl">1</span>]</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>    ρ <span class="op">=</span> p[<span class="fl">2</span>]</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>    β <span class="op">=</span> p[<span class="fl">3</span>]</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>    du1 <span class="op">=</span> σ <span class="op">*</span> (u[<span class="fl">2</span>] <span class="op">-</span> u[<span class="fl">1</span>])</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>    du2 <span class="op">=</span> u[<span class="fl">1</span>] <span class="op">*</span> (ρ <span class="op">-</span> u[<span class="fl">3</span>]) <span class="op">-</span> u[<span class="fl">2</span>]</span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>    du3 <span class="op">=</span> u[<span class="fl">1</span>] <span class="op">*</span> u[<span class="fl">2</span>] <span class="op">-</span> β <span class="op">*</span> u[<span class="fl">3</span>]</span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">SVector</span><span class="dt">{3}</span>(du1, du2, du3)</span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a>u0 <span class="op">=</span> SA[<span class="fl">1.0f0</span>; <span class="fl">0.0f0</span>; <span class="fl">0.0f0</span>]</span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a>tspan <span class="op">=</span> (<span class="fl">0.0f0</span>, <span class="fl">10.0f0</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a>p <span class="op">=</span> SA[<span class="fl">10.0f0</span>, <span class="fl">28.0f0</span>, <span class="fl">8</span> <span class="op">/</span> <span class="fl">3.0f0</span>]</span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a>prob <span class="op">=</span> <span class="fu">ODEProblem</span><span class="dt">{false}</span>(lorenz, u0, tspan, p)</span>
+<span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a>prob_func <span class="op">=</span> (prob, i, repeat) <span class="op">-&gt;</span> <span class="fu">remake</span>(prob, p <span class="op">=</span> (<span class="pp">@SVector</span> <span class="fu">rand</span>(<span class="dt">Float32</span>, <span class="fl">3</span>)) <span class="op">.*</span> p)</span>
+<span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a>monteprob <span class="op">=</span> <span class="fu">EnsembleProblem</span>(prob, prob_func <span class="op">=</span> prob_func, safetycopy <span class="op">=</span> <span class="cn">false</span>)</span>
+<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> <span class="fu">solve</span>(monteprob, <span class="fu">GPUTsit5</span>(), <span class="fu">EnsembleGPUKernel</span>(CUDA.<span class="fu">CUDABackend</span>()),</span>
+<span id="cb13-19"><a href="#cb13-19" tabindex="-1"></a>    trajectories <span class="op">=</span> <span class="fl">10_000</span>,</span>
+<span id="cb13-20"><a href="#cb13-20" tabindex="-1"></a>    saveat <span class="op">=</span> <span class="fl">1.0f0</span>);</span>
+<span id="cb13-21"><a href="#cb13-21" tabindex="-1"></a></span>
+<span id="cb13-22"><a href="#cb13-22" tabindex="-1"></a><span class="co"># 0.015064 seconds (257.68 k allocations: 13.132 MiB)</span></span></code></pre></div>
+<p>which is about two orders of magnitude faster for computing 10,000
 trajectories, note that the major factors are that we cannot define
 32-bit floating point values from R and the <code>prob_func</code> for
 generating the initial conditions and parameters is a major bottleneck
 since this function is written in R.</p>
 <p>To see how this scales in Julia, let’s take it to insane heights.
 First, let’s reduce the amount we’re saving:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> <span class="fu">solve</span>(monteprob,<span class="fu">Tsit5</span>(),<span class="fu">EnsembleGPUArray</span>(),trajectories<span class="op">=</span><span class="fl">10_000</span>,saveat<span class="op">=</span><span class="fl">1.0f0</span>)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 0.801215 seconds (1.66 M allocations: 133.846 MiB)</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> <span class="fu">solve</span>(monteprob,<span class="fu">GPUTsit5</span>(),<span class="fu">EnsembleGPUKernel</span>(CUDA.<span class="fu">CUDABackend</span>()),trajectories<span class="op">=</span><span class="fl">10_000</span>,saveat<span class="op">=</span><span class="fl">1.0f0</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="fl">0.015040</span> seconds (<span class="fl">257.64</span> k allocations<span class="op">:</span> <span class="fl">13.130</span> MiB)</span></code></pre></div>
 <p>This highlights that controlling memory pressure is key with GPU
 usage: you will get much better performance when requiring less saved
 points on the GPU.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> <span class="fu">solve</span>(monteprob,<span class="fu">Tsit5</span>(),<span class="fu">EnsembleGPUArray</span>(),trajectories<span class="op">=</span><span class="fl">100_000</span>,saveat<span class="op">=</span><span class="fl">1.0f0</span>)</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 1.871536 seconds (6.66 M allocations: 919.521 MiB, 2.48% gc time)</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> <span class="fu">solve</span>(monteprob,<span class="fu">GPUTsit5</span>(),<span class="fu">EnsembleGPUKernel</span>(CUDA.<span class="fu">CUDABackend</span>()),trajectories<span class="op">=</span><span class="fl">100_000</span>,saveat<span class="op">=</span><span class="fl">1.0f0</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="co"># 0.150901 seconds (2.60 M allocations: 131.576 MiB)</span></span></code></pre></div>
 <p>compared to serial:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> <span class="fu">solve</span>(monteprob,<span class="fu">Tsit5</span>(),<span class="fu">EnsembleSerial</span>(),trajectories<span class="op">=</span><span class="fl">100_000</span>,saveat<span class="op">=</span><span class="fl">1.0f0</span>)</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 22.136743 seconds (16.40 M allocations: 1.628 GiB, 42.98% gc time)</span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> <span class="fu">solve</span>(monteprob,<span class="fu">Tsit5</span>(),<span class="fu">EnsembleSerial</span>(),trajectories<span class="op">=</span><span class="fl">100_000</span>,saveat<span class="op">=</span><span class="fl">1.0f0</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="co"># 22.136743 seconds (16.40 M allocations: 1.628 GiB, 42.98% gc time)</span></span></code></pre></div>
 <p>And now we start to see that scaling power! Let’s solve 1 million
 trajectories:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> <span class="fu">solve</span>(monteprob,<span class="fu">Tsit5</span>(),<span class="fu">EnsembleGPUArray</span>(),trajectories<span class="op">=</span><span class="fl">1_000_000</span>,saveat<span class="op">=</span><span class="fl">1.0f0</span>)</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 25.234710 seconds (56.53 M allocations: 8.579 GiB, 51.61% gc time)</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="pp">@time</span> sol <span class="op">=</span> <span class="fu">solve</span>(monteprob,<span class="fu">GPUTsit5</span>(),<span class="fu">EnsembleGPUKernel</span>(CUDA.<span class="fu">CUDABackend</span>()),trajectories<span class="op">=</span><span class="fl">1_000_000</span>,saveat<span class="op">=</span><span class="fl">1.0f0</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="co"># 1.031295 seconds (3.40 M allocations: 241.075 MiB)</span></span></code></pre></div>
 <p>For reference, let’s look at deSolve with the change to only save
 that much:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>times      <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">100</span>, <span class="at">by =</span> <span class="fl">1.0</span>)</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>lorenz_solve <span class="ot">&lt;-</span> <span class="cf">function</span> (i){</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  state      <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">X =</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">Y =</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">Z =</span> <span class="fu">runif</span>(<span class="dv">1</span>))</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  parameters <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">a =</span> <span class="sc">-</span><span class="dv">8</span><span class="sc">/</span><span class="dv">3</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">b =</span> <span class="sc">-</span><span class="dv">10</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">c =</span> <span class="dv">28</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>))</span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">ode</span>(<span class="at">y =</span> state, <span class="at">times =</span> times, <span class="at">func =</span> Lorenz, <span class="at">parms =</span> parameters)</span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>({ <span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">1000</span>,lorenz_solve) })</span></code></pre></div>
-<p>The GPU version is solving 1000x as many trajectories, 2x as fast! So
-conclusion, if you need the most speed, you may want to move to the
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>times      <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">100</span>, <span class="at">by =</span> <span class="fl">1.0</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>lorenz_solve <span class="ot">&lt;-</span> <span class="cf">function</span> (i){</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>  state      <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">X =</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">Y =</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">Z =</span> <span class="fu">runif</span>(<span class="dv">1</span>))</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  parameters <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">a =</span> <span class="sc">-</span><span class="dv">8</span><span class="sc">/</span><span class="dv">3</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">b =</span> <span class="sc">-</span><span class="dv">10</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>), <span class="at">c =</span> <span class="dv">28</span> <span class="sc">*</span> <span class="fu">runif</span>(<span class="dv">1</span>))</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">ode</span>(<span class="at">y =</span> state, <span class="at">times =</span> times, <span class="at">func =</span> Lorenz, <span class="at">parms =</span> parameters)</span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>}</span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a><span class="fu">system.time</span>({ <span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">1000</span>,lorenz_solve) })</span></code></pre></div>
+<pre><code>   user  system elapsed 
+  49.69    3.36   53.42 </code></pre>
+<p>The GPU version is solving 1000x as many trajectories, 50x as fast!
+So conclusion, if you need the most speed, you may want to move to the
 Julia version to get the most out of your GPU due to Float32’s, and when
 using GPUs make sure it’s a problem with a relatively average or low
 memory pressure, and these methods will give orders of magnitude
 acceleration compared to what you might be used to.</p>
-</div>
 </div>
 
 
