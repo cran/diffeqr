@@ -35,6 +35,13 @@ make sure that `julia` is found in the path. For more
 information see the `julia_setup()` function from
 [JuliaCall](https://github.com/Non-Contradiction/JuliaCall).
 
+## Google Collab Notebooks
+
+As a demonstration, check out the following notebooks:
+
+- [Solving Ordinary Differential Equations Fast in R with diffeqr](https://colab.research.google.com/drive/1p7djwRMfeExVapAN8WPxZZhLnGxy4_Jl?usp=sharing)
+- [Solving ODEs on GPUs Fast in R with diffeqr](https://colab.research.google.com/drive/1XGfp30AhuHA7HQHglzVQ6zoweZdZQE6g#scrollTo=U_5yw0iFFt6f)
+
 ## Usage
 
 diffeqr provides a direct wrapper over [DifferentialEquations.jl](https://diffeq.sciml.ai).
