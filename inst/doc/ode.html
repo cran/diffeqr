@@ -12,7 +12,7 @@
 
 <meta name="author" content="Chris Rackauckas" />
 
-<meta name="date" content="2024-03-18" />
+<meta name="date" content="2024-12-04" />
 
 <title>Solving Ordinary Differential Equations (ODE) in R with diffeqr</title>
 
@@ -341,7 +341,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h1 class="title toc-ignore">Solving Ordinary Differential Equations
 (ODE) in R with diffeqr</h1>
 <h4 class="author">Chris Rackauckas</h4>
-<h4 class="date">2024-03-18</h4>
+<h4 class="date">2024-12-04</h4>
 
 
 
@@ -451,7 +451,7 @@ Verner:</p>
 <h2>Performance Enhancements</h2>
 <p>One way to enhance the performance of your code is to define the
 function in Julia so that way it is JIT compiled. diffeqr is built using
-<a href="https://github.com/Non-Contradiction/JuliaCall">the JuliaCall
+<a href="https://github.com/JuliaInterop/JuliaCall">the JuliaCall
 package</a>, and so you can utilize the Julia JIT compiler. We expose
 this automatically over ODE functions via <code>jitoptimize_ode</code>,
 like in the following example:</p>
